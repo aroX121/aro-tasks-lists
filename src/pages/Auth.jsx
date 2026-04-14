@@ -15,9 +15,10 @@ export default function Auth() {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [isRecovery, setIsRecovery] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const navigate = useNavigate();
-  const { login, signup } = useAuth();
+  const { login, signup, resetPassword } = useAuth();
 
   // Detect password recovery token in URL hash
   useEffect(() => {
@@ -47,6 +48,21 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPasswordRequest = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const { error } = await resetPassword(email);
+      if (error) throw error;
+      setSuccessMsg('Password reset link sent to your email.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -68,6 +84,50 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  // --- Forgot Password Request UI ---
+  if (isForgotPassword) {
+    return (
+      <div className="flex bg-[#f3f4fb] dark:bg-slate-950 items-center justify-center p-4 h-[100vh]">
+        <div className="max-w-[460px] w-full bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl relative">
+          <button 
+            onClick={() => { setIsForgotPassword(false); setSuccessMsg(''); setError(''); }} 
+            className="absolute top-8 right-10 flex items-center text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">Reset Password</h1>
+          <p className="text-[15px] text-slate-500 dark:text-slate-400 mb-8">Enter your email to receive a reset link.</p>
+          <form onSubmit={handleForgotPasswordRequest} className="flex flex-col gap-5">
+            {error && (
+              <div className="bg-red-50 text-red-500 p-4 rounded-xl text-sm border border-red-100">{error}</div>
+            )}
+            {successMsg && (
+              <div className="bg-emerald-50 text-emerald-600 p-4 rounded-xl text-sm border border-emerald-100">{successMsg}</div>
+            )}
+            <div className="flex flex-col gap-2">
+              <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">Email Address</label>
+              <input 
+                type="email" 
+                placeholder="hello@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full px-5 py-3 text-[14px] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-emerald-500 transition-colors"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-2 w-full bg-black dark:bg-white text-white dark:text-black font-semibold rounded-full py-4 text-[15px] hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+            >
+              {loading ? 'Sending...' : 'Send Reset Link'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   // --- Password Recovery UI ---
   if (isRecovery) {
@@ -221,6 +281,17 @@ export default function Auth() {
                   {showPassword ? <Eye className="w-5 h-5"/> : <EyeOff className="w-5 h-5"/>}
                 </button>
               </div>
+              {isLogin && (
+                <div className="flex justify-end mt-1">
+                  <button 
+                    type="button" 
+                    onClick={() => { setIsForgotPassword(true); setError(''); setSuccessMsg(''); }}
+                    className="text-[13px] font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white transition-colors"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
+              )}
             </div>
 
             {!isLogin && (

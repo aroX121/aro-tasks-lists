@@ -45,6 +45,12 @@ export function AuthProvider({ children }) {
     return supabase.auth.signOut();
   };
 
+  const resetPassword = async (email) => {
+    return supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/#type=recovery`,
+    });
+  };
+
   const updateProfile = async (metadata) => {
     return supabase.auth.updateUser({
       data: metadata
@@ -52,7 +58,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, signup, login, logout, updateProfile, loading }}>
+    <AuthContext.Provider value={{ user, signup, login, logout, resetPassword, updateProfile, loading }}>
         {!loading && children}
     </AuthContext.Provider>
   );
