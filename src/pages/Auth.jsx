@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../supabase';
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -12,8 +13,39 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [isRecovery, setIsRecovery] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
   const navigate = useNavigate();
   const { login, signup } = useAuth();
+
+  // Detect password recovery token in URL hash
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes('type=recovery')) {
+      setIsRecovery(true);
+    }
+  }, []);
+
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setSuccessMsg('Password updated! Redirecting to login...');
+      setTimeout(() => {
+        setIsRecovery(false);
+        setSuccessMsg('');
+        navigate('/');
+      }, 2000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,6 +68,50 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  // --- Password Recovery UI ---
+  if (isRecovery) {
+    return (
+      <div className="flex bg-[#f3f4fb] dark:bg-slate-950 items-center justify-center p-4 h-[100vh]">
+        <div className="max-w-[460px] w-full bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl">
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">Set New Password</h1>
+          <p className="text-[15px] text-slate-500 dark:text-slate-400 mb-8">Enter your new password below.</p>
+          <form onSubmit={handlePasswordReset} className="flex flex-col gap-5">
+            {error && (
+              <div className="bg-red-50 text-red-500 p-4 rounded-xl text-sm border border-red-100">{error}</div>
+            )}
+            {successMsg && (
+              <div className="bg-emerald-50 text-emerald-600 p-4 rounded-xl text-sm border border-emerald-100">{successMsg}</div>
+            )}
+            <div className="flex flex-col gap-2">
+              <label className="text-[13px] font-semibold text-slate-700 dark:text-slate-300">New Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Enter new password"
+                  required
+                  minLength={6}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-full pl-5 pr-12 py-3 text-[14px] text-slate-800 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-emerald-500 transition-colors"
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                  {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-2 w-full bg-black dark:bg-white text-white dark:text-black font-semibold rounded-full py-4 text-[15px] hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+            >
+              {loading ? 'Updating...' : 'Update Password'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex bg-[#f3f4fb] dark:bg-slate-950 items-center justify-center p-4 h-[100vh]">
